@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Check commit status
+      id: commit-status
     
     - name: Checkout
       uses: actions/checkout@v1
