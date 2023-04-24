@@ -1,28 +1,25 @@
-name: Deploy to ECR
-
 on:
- 
   push:
-    branches: [ main ]
+    branches:
+      - main
+
+name: Deploy to Amazon ECS
 
 jobs:
-  
-  build:
-    
-    name: Build Image
+  deploy:
+    name: Deploy
     runs-on: ubuntu-latest
 
-   
     steps:
-
-    - name: Check out code
-      uses: actions/checkout@v2
     
+    - name: Checkout
+      uses: actions/checkout@v1
+
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
-        aws-access-key-id: AKIAYUMZMFGPXLQ7MH4J
-        aws-secret-access-key: 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
+        aws-access-key-id: AKIAYUMZMFGP2ZPPLREG
+        aws-secret-access-key: 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
         aws-region: us-east-1
 
     - name: Login to Amazon ECR
@@ -30,10 +27,31 @@ jobs:
       uses: aws-actions/amazon-ecr-login@v1
 
     - name: Build, tag, and push image to Amazon ECR
+      id: build-image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: demo-deploy
-        IMAGE_TAG: nodejs_demo_image
+        IMAGE_TAG: ${{ github.sha }}
       run: |
+        # Build a docker container and
+        # push it to ECR so that it can
+        # be deployed to ECS.
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+        
+    - name: Fill in the new image ID in the Amazon ECS task definition
+      id: task-def
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
+      with:
+        task-definition: task-definition.json
+        container-name: demo-deploy
+        image: ${{ steps.build-image.outputs.image }}
+
+    - name: Deploy Amazon ECS task definition
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      with:
+        task-definition: ${{ steps.task-def.outputs.task-definition }}
+        service: demo-deploy
+        cluster: demo-deploy
+        wait-for-service-stability: true
