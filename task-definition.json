@@ -1,5 +1,5 @@
 {
-    "taskDefinitionArn": "arn:aws:ecs:us-east-1:593564019103:task-definition/demo-deploy:5",
+    "taskDefinitionArn": "arn:aws:ecs:us-east-1:593564019103:task-definition/demo-deploy:6,
     "containerDefinitions": [
         {
             "name": "demo-deploy",
